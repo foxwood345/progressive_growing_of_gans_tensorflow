@@ -5,6 +5,8 @@ from tensorflow.contrib.layers.python.layers import batch_norm, variance_scaling
 def lrelu(x , alpha= 0.2 , name="LeakyReLU"):
     return tf.maximum(x , alpha*x)
 
+# Convolution layer: 기본 커널 3x3, strides : 2 
+# tf.get_variable을 통해 weight들을 쉽게 관리할 수 있게 한다.
 def conv2d(input_, output_dim,
            k_h=3, k_w=3, d_h=2, d_w=2, padding='SAME',
            name="conv2d", with_w=False):
@@ -122,7 +124,9 @@ def instance_norm(input, scope="instance_norm"):
 
         return scale*normalized + offset
 
+# Pixelwise Normalization
 def Pixl_Norm(input, eps=1e-8):
+    # [batch, width, height, channel]에서 channel에 대해서 평균
     return input / tf.sqrt(tf.reduce_mean(input**2, axis=3, keep_dims=True) + eps)
 
 class WScaleLayer(object):
@@ -143,23 +147,16 @@ class WScaleLayer(object):
         return input * self.scale + self.bias, self.we_assign
 
 def MinibatchstateConcat(input, averaging='all'):
-
+    # lambda 함수로 정의
     adjusted_std = lambda x, **kwargs: tf.sqrt(tf.reduce_mean((x - tf.reduce_mean(x, **kwargs)) **2, **kwargs) + 1e-8)
+    # minibatch에 대한 stddev을 구함
     vals = adjusted_std(input, axis=0, keep_dims=True)
     if averaging == 'all':
+        # 구한 stddev의 평균을 구함 #[M, 1,1,1]
         vals = tf.reduce_mean(vals, keep_dims=True)
     else:
         print ("nothing")
+    # 구한 값을 복사해줌 [batch_size, 4, 4, 1] shape로 
     vals = tf.tile(vals, multiples=[tf.shape(input)[0], 4, 4, 1])
+    # channel dimension에 대해 concat
     return tf.concat([input, vals], axis=3)
-
-
-
-
-
-
-
-
-
-
-
